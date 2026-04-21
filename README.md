@@ -1,165 +1,122 @@
-#Purpose
+Az-SubnetEgressAudit.ps1
+Overview
 
-Az-SubnetEgressAudit.ps1 is a PowerShell script used to review Azure subnets and identify how outbound internet connectivity is provided.
+Az-SubnetEgressAudit.ps1 is a PowerShell script that audits Azure subnets to determine how outbound (egress) internet connectivity is configured.
 
-The script checks each subnet across the Azure subscriptions you can access and looks for approved outbound methods such as:
+It identifies subnets that may be relying on Azure’s legacy default outbound access, which is being deprecated for new virtual networks.
 
-NAT Gateway
-Default route (0.0.0.0/0) through a route table
-Load Balancer outbound rules
-Public IP assignments on NICs
+Why This Matters
 
-If a subnet does not have any of these configured, the script flags it as a potential risk because it may be relying on Azure legacy default outbound access.
+Microsoft is changing how outbound connectivity works in Azure:
 
-Why This Script Is Needed
+New VNets/subnets will not receive default outbound internet access
+Outbound connectivity must be explicitly configured
 
-Microsoft is changing how outbound internet access works for Azure virtual networks. New virtual networks and subnets will no longer receive automatic default outbound internet access unless outbound connectivity is explicitly configured.
+This script helps you:
 
-Because of this change, it is important to identify subnets that do not have a defined outbound method.
-
-This script helps administrators:
-
-Find subnets that may be at risk
-Verify whether outbound connectivity is explicitly configured
-Support cleanup and remediation planning
-Document current Azure network design
+Identify subnets at risk
+Validate outbound design
+Support remediation planning
+Document current network architecture
 What the Script Checks
 
-The script reviews each subnet and checks for the following:
+Each subnet is evaluated for the following outbound methods:
 
-1. NAT Gateway
+NAT Gateway
+Route Table (0.0.0.0/0)
+Load Balancer outbound rules
+Public IP assignments
 
-Determines whether a NAT Gateway is attached to the subnet.
-
-2. Route Table
-
-Checks whether the subnet has a route table with a default route:
-
-0.0.0.0/0
-
-This can indicate traffic is being sent to:
-
-Azure Firewall
-Network Virtual Appliance (NVA)
-Another explicit outbound path
-3. Load Balancer Outbound Rules
-
-Checks whether any NICs in the subnet are associated with backend pools that use outbound rules.
-
-4. Public IP Addresses
-
-Checks whether VMs or NIC IP configurations in the subnet have public IPs assigned.
+If none of these are found, the subnet is flagged as at risk.
 
 Requirements
-
-Before running the script, make sure the following PowerShell modules are installed:
-
+PowerShell 5.1 or later
+Azure PowerShell modules:
 Az.Accounts
 Az.Network
 Az.Compute
+Azure permissions to read:
+VNets
+Subnets
+NICs
+Load Balancers
+Route Tables
+Authentication
 
-You must already be signed in to Azure before running the script.
-
-Example:
-
-Connect-AzAccount
-
-If needed, set the correct subscription or tenant before running the script.
-
-How to Run the Script
-Step 1: Open PowerShell
-
-Open PowerShell with an account that has permission to read Azure networking resources.
-
-Step 2: Sign in to Azure
-
-Run:
+You must authenticate to Azure before running the script:
 
 Connect-AzAccount
-Step 3: Run the script
 
-Example:
+Optionally set your subscription:
+
+Set-AzContext -SubscriptionId <SubscriptionId>
+Usage
+
+Run the script from PowerShell:
 
 .\Az-SubnetEgressAudit.ps1
-Output Files
+
+The script will automatically scan all accessible subscriptions.
+
+Output
 
 The script writes output files to:
 
 C:\Temp
-
-It creates two files with a timestamp:
-
 CSV Report
 
-Example:
+Contains the full audit results:
 
-C:\Temp\Azure-Subnet-Outbound-Audit-20260421-091748.csv
-
-This file contains the subnet audit results.
-
+Azure-Subnet-Outbound-Audit-<timestamp>.csv
 Log File
 
-Example:
+Contains debug and processing details:
 
-C:\Temp\Azure-Subnet-Outbound-Audit-20260421-091748.log
+Azure-Subnet-Outbound-Audit-<timestamp>.log
+Understanding Results
 
-This file contains debug and processing details, including any resource-level errors encountered during the audit.
+Key field in the CSV:
 
-Understanding the Results
-
-The CSV output includes information such as:
-
-Subscription name
-Resource group
-VNet name
-Subnet name
+AppearsToUseLegacyDefaultOutbound
+True
+→ No explicit outbound method detected
+→ Subnet may rely on deprecated default outbound access
+False
+→ Explicit outbound method found
+Example Output Fields
+Subscription
+ResourceGroup
+VNet
+Subnet
 NAT Gateway status
-Route table status
-Load Balancer outbound rule status
-Public IP status
+Route Table status
+Load Balancer outbound status
+Public IP presence
 Risk finding
-Key Result Field
-AppearsToUseLegacyDefaultOutbound = True
-
-This means the script did not find an explicit outbound method for that subnet.
-
-That subnet should be reviewed because it may be depending on legacy default outbound access.
-
-AppearsToUseLegacyDefaultOutbound = False
-
-This means the subnet appears to have an explicit outbound method configured.
-
-Example Use Cases
-
-This script is useful for:
-
-Azure network reviews
+Common Use Cases
+Azure network audits
 AVD environment validation
-Security and compliance audits
-Pre-migration assessments
-Documentation of outbound connectivity design
-Identifying subnets affected by Microsoft outbound connectivity changes
+Security and compliance reviews
+Migration readiness checks
+Outbound connectivity standardization
 Important Notes
-The script is read-only and does not make changes in Azure.
-The script depends on the Azure account permissions of the person running it.
-If a resource cannot be read, the script logs the error and continues processing other resources.
-Results should still be reviewed by an administrator, especially for complex network designs.
-Recommended Follow-Up
+This script is read-only
+No changes are made to Azure resources
+Results depend on your Azure permissions
+Errors are logged and do not stop execution
+Recommended Remediation
 
-If the script identifies a subnet as at risk, review whether it should use one of the following explicit outbound methods:
+If a subnet is flagged as at risk, consider implementing:
 
-NAT Gateway
+NAT Gateway (recommended)
 Azure Firewall
-Network Virtual Appliance
-Standard Load Balancer outbound rules
-Public IP assignment where appropriate
-
-For most cases, NAT Gateway is the preferred Azure-recommended outbound method.
-
+Network Virtual Appliance (NVA)
+Load Balancer outbound rules
+Public IPs (if appropriate)
 Script Information
-
-File Name: Az-SubnetEgressAudit.ps1
-Author: Jeremy Arthur
-Organization: UTH / DCO Infrastructure
-Version: 1.0.0
-Created: 2026-04-21
+Field	Value
+Name	Az-SubnetEgressAudit.ps1
+Author	Jeremy Arthur
+Organization	UTH / DCO Infrastructure
+Version	1.0.0
+Created	2026-04-21
