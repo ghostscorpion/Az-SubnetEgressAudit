@@ -116,7 +116,7 @@ Public IPs (if appropriate)
 Script Information
 Field	Value
 Name	Az-SubnetEgressAudit.ps1
-Author	Jeremy Arthur
-Organization	UTH / DCO Infrastructure
+Author	Scorpion
+Organization	Scorpion Labs
 Version	1.0.0
 Created	2026-04-21
